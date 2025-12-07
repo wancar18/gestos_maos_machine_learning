@@ -28,10 +28,8 @@ while cap.isOpened():
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Desenha os landmarks na tela
             mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-            # Extrai e normaliza os landmarks EXATAMENTE como no script de coleta
             landmarks = hand_landmarks.landmark
             wrist_coords = np.array([landmarks[0].x, landmarks[0].y])
             
@@ -40,18 +38,27 @@ while cap.isOpened():
                 normalized_landmarks.append(lm.x - wrist_coords[0])
                 normalized_landmarks.append(lm.y - wrist_coords[1])
 
-            # Prepara os dados para o modelo
             data_point = np.array(normalized_landmarks).reshape(1, -1)
 
-            # Faz a previsão
             prediction = model.predict(data_point)
             predicted_class_index = np.argmax(prediction)
             predicted_class_name = label_encoder.inverse_transform([predicted_class_index])[0]
             confidence = np.max(prediction) * 100
 
-            # Exibe o resultado na tela
             cv2.putText(frame, f"{predicted_class_name} ({confidence:.2f}%)", 
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    # ### NOVO: Exibir lista de gestos conhecidos pelo modelo no canto da tela ###
+    # Obtém a altura e largura da imagem para posicionar o texto (opcional, para alinhar à direita)
+    h, w, c = frame.shape
+    
+    cv2.putText(frame, "Gestos Disponiveis:", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+    
+    # label_encoder.classes_ contém a lista ['aberta', 'arminha', 'fechada', etc.]
+    for i, gesto in enumerate(label_encoder.classes_):
+        y_pos = 90 + (i * 20)
+        cv2.putText(frame, f"- {gesto}", (10, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    # #########################################################################
 
     cv2.imshow('Detecção com Landmarks', frame)
     if cv2.waitKey(10) & 0xFF == ord('q'):
